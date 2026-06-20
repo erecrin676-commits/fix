@@ -1,0 +1,681 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitApp</title>
+<style>
+  :root{
+    --bg-dark:#0B0F1A;
+    --bg-card:#161C2E;
+    --bg-card-light:#1E2538;
+    --accent-blue:#3B82F6;
+    --accent-blue-dark:#1D4ED8;
+    --accent-red:#EF4444;
+    --text-primary:#FFFFFF;
+    --text-secondary:#9CA3AF;
+    --text-muted:#6B7280;
+    --divider:#252B3D;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:-apple-system, 'Segoe UI', Inter, sans-serif;
+    background:var(--bg-dark);
+    color:var(--text-primary);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  #app{
+    width:100%;
+    max-width:430px;
+    min-height:100vh;
+    background:var(--bg-dark);
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+  .screen{ display:none; flex:1; flex-direction:column; }
+  .screen.active{ display:flex; }
+  .scroll{ flex:1; overflow-y:auto; padding:20px; padding-bottom:100px; }
+
+  /* ---------- Auth ---------- */
+  .auth-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; }
+  .auth-logo{ width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark)); margin-bottom:16px; display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .auth-title{ font-size:28px; font-weight:800; margin-bottom:4px; }
+  .auth-subtitle{ color:var(--text-secondary); font-size:15px; margin-bottom:28px; }
+  .input{
+    width:100%; height:52px; border-radius:12px; border:1px solid var(--divider);
+    background:var(--bg-card); color:var(--text-primary); padding:0 16px; font-size:15px;
+    margin-bottom:12px; font-family:inherit;
+  }
+  .input::placeholder{ color:var(--text-muted); }
+  .btn-primary{
+    width:100%; height:52px; border-radius:14px; border:none; background:var(--accent-blue);
+    color:#fff; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; margin-bottom:14px;
+  }
+  .btn-primary:active{ opacity:.8; }
+  .link-text{ color:var(--accent-blue); font-size:14px; cursor:pointer; text-align:center; padding:8px; background:none; border:none; font-family:inherit; }
+  .auth-error{ color:var(--accent-red); font-size:13px; margin-bottom:10px; text-align:center; min-height:16px; }
+
+  /* ---------- Top bar ---------- */
+  .top-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .greet-label{ color:var(--text-secondary); font-size:14px; }
+  .greet-name{ font-size:22px; font-weight:800; }
+  .icon-btn{ width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--bg-card); cursor:pointer; border:none; font-size:18px; }
+
+  /* ---------- Level card ---------- */
+  .level-card{ background:linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark)); border-radius:18px; padding:20px; margin-bottom:16px; }
+  .level-card .lbl{ color:#D6E4FF; font-size:13px; margin-bottom:2px; }
+  .level-row{ display:flex; align-items:center; justify-content:space-between; margin:6px 0 12px; }
+  .level-num{ font-size:34px; font-weight:800; }
+  .xp-badge{ background:rgba(0,0,0,.18); padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600; }
+  .progress-track{ height:8px; border-radius:8px; background:rgba(0,0,0,.25); overflow:hidden; margin-bottom:8px; }
+  .progress-fill{ height:100%; background:#fff; border-radius:8px; transition:width .3s; }
+  .level-card .sub{ color:#D6E4FF; font-size:12px; }
+
+  /* ---------- Stat grid ---------- */
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .stat-card{ background:var(--bg-card); border-radius:16px; padding:16px; cursor:default; }
+  .stat-card.clickable{ cursor:pointer; }
+  .stat-card .icon{ font-size:22px; margin-bottom:8px; display:block; }
+  .stat-card .val{ font-size:20px; font-weight:800; margin-bottom:2px; }
+  .stat-card .lbl{ color:var(--text-secondary); font-size:12px; }
+
+  .section-title{ font-size:16px; font-weight:700; margin-bottom:12px; }
+  .quick-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .quick-card{ background:var(--bg-card); border-radius:16px; padding:18px; text-align:center; cursor:pointer; border:none; color:var(--text-primary); font-family:inherit; }
+  .quick-card .icon{ font-size:26px; display:block; margin-bottom:8px; }
+  .quick-card .lbl{ font-size:13px; }
+
+  /* ---------- Workouts ---------- */
+  .page-title{ font-size:22px; font-weight:800; margin-bottom:2px; }
+  .page-subtitle{ color:var(--text-secondary); font-size:14px; margin-bottom:16px; }
+  .tabs{ display:flex; gap:6px; margin-bottom:18px; }
+  .tab{ flex:1; text-align:center; padding:10px; border-radius:10px; background:var(--bg-card); font-size:13px; cursor:pointer; transition:background .15s; }
+  .tab.selected{ background:var(--accent-blue); font-weight:600; }
+  .workout-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .workout-card{ background:var(--bg-card); border-radius:16px; padding:14px; }
+  .workout-thumb{ height:90px; border-radius:12px; background:var(--bg-card-light); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .workout-name{ font-weight:700; font-size:15px; margin-bottom:6px; }
+  .workout-meta{ display:flex; gap:10px; color:var(--text-secondary); font-size:12px; margin-bottom:10px; }
+  .workout-xp{ background:var(--accent-blue); color:#fff; border:none; border-radius:20px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer; float:right; font-family:inherit; }
+  .empty-state{ color:var(--text-secondary); text-align:center; padding:40px 10px; font-size:14px; }
+
+  /* ---------- AI Coach ---------- */
+  .coach-header{ padding:20px 20px 10px; }
+  .chip-row{ display:flex; gap:6px; margin-top:14px; }
+  .chip{ flex:1; background:var(--bg-card); border-radius:10px; padding:10px; font-size:12px; text-align:center; cursor:pointer; border:none; color:var(--text-primary); font-family:inherit; }
+  .chat-scroll{ flex:1; overflow-y:auto; padding:0 16px; }
+  .msg-row{ display:flex; margin:6px 0; }
+  .msg-row.user{ justify-content:flex-end; }
+  .msg-row.ai{ justify-content:flex-start; }
+  .bubble{ max-width:75%; padding:12px; border-radius:16px; font-size:14px; line-height:1.4; }
+  .bubble.user{ background:var(--accent-blue); color:#fff; }
+  .bubble.ai{ background:var(--bg-card-light); color:var(--text-primary); }
+  .chat-input-row{ display:flex; gap:10px; align-items:center; padding:12px; background:var(--bg-card); }
+  .chat-input{ flex:1; height:48px; border-radius:12px; border:1px solid var(--divider); background:var(--bg-dark); color:var(--text-primary); padding:0 14px; font-size:14px; font-family:inherit; }
+  .send-btn{ width:48px; height:48px; border-radius:12px; background:var(--accent-blue); border:none; color:#fff; font-size:18px; cursor:pointer; flex-shrink:0; }
+
+  /* ---------- Profile ---------- */
+  .profile-hero{ background:linear-gradient(135deg, var(--accent-blue-dark), #122259); padding:32px 28px; text-align:center; }
+  .avatar{ width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark)); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; margin:0 auto 12px; }
+  .profile-name{ font-size:20px; font-weight:800; margin-bottom:2px; }
+  .profile-email{ color:#D6E4FF; font-size:13px; margin-bottom:12px; }
+  .profile-badge{ display:inline-block; background:rgba(0,0,0,.2); padding:6px 16px; border-radius:20px; font-size:12px; }
+  .stats-row{ display:flex; background:var(--bg-card); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .stats-row .item{ flex:1; text-align:center; }
+  .stats-row .item .v{ font-size:20px; font-weight:800; }
+  .stats-row .item .l{ color:var(--text-secondary); font-size:12px; }
+  .info-label{ color:var(--text-secondary); font-size:12px; letter-spacing:.5px; margin-bottom:8px; }
+  .info-card{ background:var(--bg-card); border-radius:16px; margin-bottom:20px; overflow:hidden; }
+  .info-row{ display:flex; align-items:center; gap:12px; padding:14px; border-bottom:1px solid var(--divider); }
+  .info-row:last-child{ border-bottom:none; }
+  .info-row .ic{ font-size:18px; width:22px; text-align:center; }
+  .info-row .name{ flex:1; font-size:14px; }
+  .info-row .value{ color:var(--text-secondary); font-size:14px; }
+  .btn-outline-danger{ width:100%; height:50px; border-radius:14px; background:var(--bg-card); border:none; color:var(--accent-red); font-size:14px; font-family:inherit; cursor:pointer; }
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav{ display:flex; background:var(--bg-card); border-top:1px solid var(--divider); padding:8px 0 max(8px, env(safe-area-inset-bottom)); position:sticky; bottom:0; }
+  .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; padding:6px 0; color:var(--text-secondary); background:none; border:none; font-family:inherit; }
+  .nav-item.active{ color:var(--accent-blue); }
+  .nav-item .ic{ font-size:20px; }
+  .nav-item .lbl{ font-size:11px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50; }
+  .modal-overlay.active{ display:flex; }
+  .modal-box{ background:var(--bg-card); border-radius:18px; padding:24px; width:90%; max-width:360px; }
+  .modal-title{ font-size:17px; font-weight:700; margin-bottom:16px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:6px; }
+  .modal-actions button{ flex:1; height:46px; border-radius:12px; border:none; font-family:inherit; font-size:14px; cursor:pointer; }
+  .modal-cancel{ background:var(--bg-card-light); color:var(--text-primary); }
+  .modal-save{ background:var(--accent-blue); color:#fff; font-weight:700; }
+
+  .toast{ position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--bg-card-light); color:#fff; padding:12px 20px; border-radius:12px; font-size:13px; z-index:60; opacity:0; transition:opacity .25s; pointer-events:none; max-width:85%; text-align:center; }
+  .toast.show{ opacity:1; }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== GİRİŞ ===================== -->
+  <section class="screen active" id="screen-login">
+    <div class="auth-wrap">
+      <div class="auth-logo">💪</div>
+      <div class="auth-title">FitApp</div>
+      <div class="auth-subtitle">Giriş Yap</div>
+      <div class="auth-error" id="loginError"></div>
+      <input class="input" id="loginEmail" type="email" placeholder="E-posta" autocomplete="email">
+      <input class="input" id="loginPassword" type="password" placeholder="Şifre" autocomplete="current-password">
+      <button class="btn-primary" id="btnLogin">Giriş Yap</button>
+      <button class="link-text" id="goRegister">Hesabın yok mu? Kayıt ol</button>
+    </div>
+  </section>
+
+  <!-- ===================== KAYIT ===================== -->
+  <section class="screen" id="screen-register">
+    <div class="auth-wrap">
+      <div class="auth-title" style="margin-bottom:28px;">Kayıt Ol</div>
+      <div class="auth-error" id="registerError"></div>
+      <input class="input" id="regName" type="text" placeholder="Ad Soyad" autocomplete="name">
+      <input class="input" id="regEmail" type="email" placeholder="E-posta" autocomplete="email">
+      <input class="input" id="regPassword" type="password" placeholder="Şifre (en az 6 karakter)" autocomplete="new-password">
+      <button class="btn-primary" id="btnRegister">Kayıt Ol</button>
+      <button class="link-text" id="goLogin">Zaten hesabın var mı? Giriş yap</button>
+    </div>
+  </section>
+
+  <!-- ===================== ANA SAYFA ===================== -->
+  <section class="screen" id="screen-home">
+    <div class="scroll">
+      <div class="top-row">
+        <div>
+          <div class="greet-label">Merhaba,</div>
+          <div class="greet-name" id="homeName">Kullanıcı</div>
+        </div>
+        <button class="icon-btn" id="btnHomeSettings">⚙️</button>
+      </div>
+
+      <div class="level-card">
+        <div class="lbl">Seviye</div>
+        <div class="level-row">
+          <div class="level-num" id="homeLevel">1</div>
+          <div class="xp-badge" id="homeXp">0 XP</div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="homeXpFill" style="width:0%"></div></div>
+        <div class="sub" id="homeXpNext">0 / 100 XP — Sonraki Seviye</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card clickable" id="cardWater">
+          <span class="icon">💧</span>
+          <div class="val" id="homeWater">0/8</div>
+          <div class="lbl">Su (bardak)</div>
+        </div>
+        <div class="stat-card">
+          <span class="icon">🔥</span>
+          <div class="val" id="homeStreak">0</div>
+          <div class="lbl">Gün Seri</div>
+        </div>
+        <div class="stat-card">
+          <span class="icon">🔥</span>
+          <div class="val" id="homeKcalBurned">0</div>
+          <div class="lbl">Yakılan kcal</div>
+        </div>
+        <div class="stat-card">
+          <span class="icon">🍎</span>
+          <div class="val" id="homeKcalIntake">0</div>
+          <div class="lbl">Alınan kcal</div>
+        </div>
+      </div>
+
+      <div class="section-title">Hızlı Erişim</div>
+      <div class="quick-grid">
+        <button class="quick-card" id="quickStartWorkout"><span class="icon">🏋️</span><span class="lbl">Antrenman Başlat</span></button>
+        <button class="quick-card" id="quickStats"><span class="icon">📈</span><span class="lbl">İstatistikler</span></button>
+        <button class="quick-card" id="quickAchievements"><span class="icon">🏆</span><span class="lbl">Başarılar</span></button>
+        <button class="quick-card" id="quickNutrition"><span class="icon">🍏</span><span class="lbl">Beslenme</span></button>
+      </div>
+    </div>
+    <div class="bottom-nav" data-nav></div>
+  </section>
+
+  <!-- ===================== ANTRENMANLAR ===================== -->
+  <section class="screen" id="screen-workouts">
+    <div class="scroll">
+      <div class="page-title">Antrenmanlar</div>
+      <div class="page-subtitle">Bugün ne çalışıyoruz?</div>
+      <div class="tabs">
+        <div class="tab selected" data-filter="Tümü">Tümü</div>
+        <div class="tab" data-filter="Evde Spor">Evde Spor</div>
+        <div class="tab" data-filter="Güç Antrenmanı">Kardiyo</div>
+      </div>
+      <div class="workout-grid" id="workoutGrid"></div>
+    </div>
+    <div class="bottom-nav" data-nav></div>
+  </section>
+
+  <!-- ===================== AI KOÇ ===================== -->
+  <section class="screen" id="screen-coach">
+    <div class="coach-header">
+      <div class="page-title" style="font-size:20px;">Koçuna bir soru sor</div>
+      <div class="page-subtitle">Antrenman, beslenme veya motivasyon için yardım al.</div>
+      <div class="chip-row">
+        <button class="chip" data-quick="Motivasyona ihtiyacım var">⚡ Motivasyon</button>
+        <button class="chip" data-quick="Kas geliştirme konusunda yardım eder misin?">💪 Kas geliştirme</button>
+        <button class="chip" data-quick="Kilo verme planı önerir misin?">🥗 Kilo verme planı</button>
+      </div>
+    </div>
+    <div class="chat-scroll" id="chatScroll"></div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" type="text" placeholder="Bir mesaj yaz…">
+      <button class="send-btn" id="btnSend">➤</button>
+    </div>
+    <div class="bottom-nav" data-nav></div>
+  </section>
+
+  <!-- ===================== PROFİL ===================== -->
+  <section class="screen" id="screen-profile">
+    <div class="scroll" style="padding:0; padding-bottom:100px;">
+      <div class="profile-hero">
+        <div class="avatar" id="profileAvatar">E</div>
+        <div class="profile-name" id="profileName">Kullanıcı</div>
+        <div class="profile-email" id="profileEmail">kullanici@mail.com</div>
+        <div class="profile-badge" id="profileLevelXp">Seviye 1 · 0 XP</div>
+      </div>
+      <div style="padding:20px;">
+        <div class="stats-row">
+          <div class="item"><div class="v" id="profileStreak">0</div><div class="l">Seri</div></div>
+          <div class="item"><div class="v" id="profileWorkouts">0</div><div class="l">Antrenman</div></div>
+          <div class="item"><div class="v" id="profileBadges">0/7</div><div class="l">Rozet</div></div>
+        </div>
+        <div class="info-label">BİLGİLERİM</div>
+        <div class="info-card">
+          <div class="info-row"><span class="ic">🎂</span><span class="name">Yaş</span><span class="value" id="profileAge">-</span></div>
+          <div class="info-row"><span class="ic">📏</span><span class="name">Boy</span><span class="value" id="profileHeight">-</span></div>
+          <div class="info-row"><span class="ic">⚖️</span><span class="name">Kilo</span><span class="value" id="profileWeight">-</span></div>
+          <div class="info-row"><span class="ic">🎯</span><span class="name">Hedef</span><span class="value" id="profileGoal">Formda Kal</span></div>
+        </div>
+        <button class="btn-primary" id="btnEditProfile">Bilgilerimi Düzenle</button>
+        <button class="btn-outline-danger" id="btnLogout">Çıkış Yap</button>
+      </div>
+    </div>
+    <div class="bottom-nav" data-nav></div>
+  </section>
+
+</div>
+
+<!-- Profil düzenleme modalı -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-title">Bilgilerimi Düzenle</div>
+    <input class="input" id="editAge" type="number" placeholder="Yaş">
+    <input class="input" id="editHeight" type="number" placeholder="Boy (cm)">
+    <input class="input" id="editWeight" type="number" placeholder="Kilo (kg)">
+    <input class="input" id="editGoal" type="text" placeholder="Hedef (örn. Kilo Ver, Kas Kazan)">
+    <div class="modal-actions">
+      <button class="modal-cancel" id="editCancel">Vazgeç</button>
+      <button class="modal-save" id="editSave">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====================================================================
+   BU SÜRÜM HİÇBİR İNTERNET BAĞLANTISI VEYA FIREBASE GEREKTİRMEZ.
+   Tüm veriler tarayıcının kendi hafızasında (localStorage) saklanır.
+   Yani: aynı tarayıcıda her açtığında bilgilerin orada kalır, ama
+   başka bir cihaza/tarayıcıya geçtiğinde senkronize OLMAZ.
+   ==================================================================== */
+
+const DB_USERS_KEY = "fitapp_users";        // { email: {password, profile} }
+const DB_SESSION_KEY = "fitapp_session";     // şu an giriş yapmış email
+const DB_WORKOUTS_KEY = "fitapp_workouts";   // antrenman listesi
+
+const SEED_WORKOUTS = [
+  { id:"plank", name:"Plank", category:"Evde Spor", duration:1, kcal:10, xp:15, emoji:"🧘" },
+  { id:"sinav", name:"Şınav", category:"Evde Spor", duration:1, kcal:15, xp:10, emoji:"💪" },
+  { id:"mekik", name:"Mekik", category:"Evde Spor", duration:1, kcal:12, xp:10, emoji:"🤸" },
+  { id:"burpee", name:"Burpee", category:"Güç Antrenmanı", duration:1, kcal:25, xp:20, emoji:"⚡" },
+  { id:"kosu", name:"Koşu", category:"Güç Antrenmanı", duration:20, kcal:200, xp:25, emoji:"🏃" },
+  { id:"jumping_jack", name:"Jumping Jack", category:"Güç Antrenmanı", duration:1, kcal:20, xp:12, emoji:"🤾" }
+];
+
+let currentProfile = null;
+let currentEmail = null;
+let allWorkouts = [];
+let activeFilter = "Tümü";
+
+/* ---------- Basit "veritabanı" yardımcıları (localStorage) ---------- */
+function getUsers(){
+  return JSON.parse(localStorage.getItem(DB_USERS_KEY) || "{}");
+}
+function saveUsers(users){
+  localStorage.setItem(DB_USERS_KEY, JSON.stringify(users));
+}
+function getWorkoutsFromStorage(){
+  const raw = localStorage.getItem(DB_WORKOUTS_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+function saveWorkoutsToStorage(list){
+  localStorage.setItem(DB_WORKOUTS_KEY, JSON.stringify(list));
+}
+function defaultProfile(name, email){
+  return {
+    name, email, age:0, heightCm:0, weightKg:0, goal:"Formda Kal",
+    level:1, xp:0, xpToNextLevel:100, streakDays:0, totalWorkouts:0, badges:0,
+    waterCups:0, waterGoal:8, kcalBurned:0, kcalIntake:0
+  };
+}
+function saveProfile(){
+  const users = getUsers();
+  if (users[currentEmail]){
+    users[currentEmail].profile = currentProfile;
+    saveUsers(users);
+  }
+}
+
+/* ---------- Navigasyon ---------- */
+const NAV_ITEMS = [
+  { id:"home", label:"Ana Sayfa", icon:"🏠" },
+  { id:"workouts", label:"Antrenman…", icon:"🏋️" },
+  { id:"coach", label:"AI Koç", icon:"🤖" },
+  { id:"profile", label:"Profil", icon:"👤" }
+];
+
+function renderBottomNavs(activeId){
+  document.querySelectorAll('[data-nav]').forEach(navEl=>{
+    navEl.innerHTML = "";
+    NAV_ITEMS.forEach(item=>{
+      const btn = document.createElement('button');
+      btn.className = 'nav-item' + (item.id===activeId ? ' active' : '');
+      btn.innerHTML = `<span class="ic">${item.icon}</span><span class="lbl">${item.label}</span>`;
+      btn.onclick = ()=> showScreen(item.id);
+      navEl.appendChild(btn);
+    });
+  });
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (['home','workouts','coach','profile'].includes(id)) renderBottomNavs(id);
+  if (id === 'home') refreshHome();
+  if (id === 'workouts') refreshWorkouts();
+  if (id === 'profile') refreshProfile();
+  if (id === 'coach') initCoachIfNeeded();
+}
+
+function switchAuth(which){
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-register').classList.remove('active');
+  document.getElementById('screen-' + which).classList.add('active');
+}
+
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* ====================== AUTH ====================== */
+document.getElementById('goRegister').onclick = ()=> switchAuth('register');
+document.getElementById('goLogin').onclick = ()=> switchAuth('login');
+
+document.getElementById('btnLogin').onclick = ()=>{
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value.trim();
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = "";
+  if (!email || !password){ errEl.textContent = "Lütfen e-posta ve şifrenizi girin"; return; }
+
+  const users = getUsers();
+  const user = users[email];
+  if (!user || user.password !== password){
+    errEl.textContent = "E-posta veya şifre hatalı";
+    return;
+  }
+  currentEmail = email;
+  currentProfile = user.profile;
+  localStorage.setItem(DB_SESSION_KEY, email);
+  loadWorkoutsAndEnter();
+};
+
+document.getElementById('btnRegister').onclick = ()=>{
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value.trim();
+  const errEl = document.getElementById('registerError');
+  errEl.textContent = "";
+  if (!name || !email || !password){ errEl.textContent = "Lütfen tüm alanları doldurun"; return; }
+  if (password.length < 6){ errEl.textContent = "Şifre en az 6 karakter olmalı"; return; }
+
+  const users = getUsers();
+  if (users[email]){
+    errEl.textContent = "Bu e-posta zaten kayıtlı";
+    return;
+  }
+  users[email] = { password, profile: defaultProfile(name, email) };
+  saveUsers(users);
+
+  currentEmail = email;
+  currentProfile = users[email].profile;
+  localStorage.setItem(DB_SESSION_KEY, email);
+  loadWorkoutsAndEnter();
+};
+
+document.getElementById('btnLogout').onclick = ()=>{
+  localStorage.removeItem(DB_SESSION_KEY);
+  currentEmail = null;
+  currentProfile = null;
+  document.getElementById('loginEmail').value = "";
+  document.getElementById('loginPassword').value = "";
+  switchAuth('login');
+};
+
+function loadWorkoutsAndEnter(){
+  let stored = getWorkoutsFromStorage();
+  if (!stored || stored.length === 0){
+    stored = SEED_WORKOUTS.slice();
+    saveWorkoutsToStorage(stored);
+  }
+  allWorkouts = stored;
+  showScreen('home');
+}
+
+/* ---------- Sayfa açılışında oturum kontrolü ---------- */
+(function initSession(){
+  const savedEmail = localStorage.getItem(DB_SESSION_KEY);
+  if (savedEmail){
+    const users = getUsers();
+    if (users[savedEmail]){
+      currentEmail = savedEmail;
+      currentProfile = users[savedEmail].profile;
+      loadWorkoutsAndEnter();
+    }
+  }
+})();
+
+/* ====================== ANA SAYFA ====================== */
+function refreshHome(){
+  if (!currentProfile) return;
+  document.getElementById('homeName').textContent = currentProfile.name || "Kullanıcı";
+  document.getElementById('homeLevel').textContent = currentProfile.level;
+  document.getElementById('homeXp').textContent = currentProfile.xp + " XP";
+  const pct = Math.min(100, Math.round((currentProfile.xp / currentProfile.xpToNextLevel) * 100));
+  document.getElementById('homeXpFill').style.width = pct + "%";
+  document.getElementById('homeXpNext').textContent = currentProfile.xp + " / " + currentProfile.xpToNextLevel + " XP — Sonraki Seviye";
+  document.getElementById('homeWater').textContent = currentProfile.waterCups + "/" + currentProfile.waterGoal;
+  document.getElementById('homeStreak').textContent = currentProfile.streakDays;
+  document.getElementById('homeKcalBurned').textContent = currentProfile.kcalBurned;
+  document.getElementById('homeKcalIntake').textContent = currentProfile.kcalIntake;
+}
+
+document.getElementById('cardWater').onclick = ()=>{
+  currentProfile.waterCups += 1;
+  saveProfile();
+  refreshHome();
+};
+document.getElementById('quickStartWorkout').onclick = ()=> showScreen('workouts');
+document.getElementById('quickStats').onclick = ()=> showToast("İstatistikler yakında!");
+document.getElementById('quickAchievements').onclick = ()=> showToast("Başarılar yakında!");
+document.getElementById('quickNutrition').onclick = ()=> showToast("Beslenme modülü yakında!");
+document.getElementById('btnHomeSettings').onclick = ()=> showToast("Ayarlar yakında!");
+
+/* ====================== ANTRENMANLAR ====================== */
+function refreshWorkouts(){ renderWorkoutGrid(); }
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('selected'));
+    tab.classList.add('selected');
+    activeFilter = tab.dataset.filter;
+    renderWorkoutGrid();
+  };
+});
+
+function renderWorkoutGrid(){
+  const grid = document.getElementById('workoutGrid');
+  const list = activeFilter === "Tümü" ? allWorkouts : allWorkouts.filter(w=>w.category===activeFilter);
+  if (list.length === 0){
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Bu kategoride antrenman bulunamadı.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(w=>`
+    <div class="workout-card">
+      <div class="workout-thumb">${w.emoji || "🏋️"}</div>
+      <div class="workout-name">${w.name}</div>
+      <div class="workout-meta"><span>⏱ ${w.duration} dk</span><span>🔥 ${w.kcal} kcal</span></div>
+      <button class="workout-xp" data-id="${w.id}">+${w.xp}</button>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.workout-xp').forEach(btn=>{
+    btn.onclick = ()=> completeWorkout(btn.dataset.id);
+  });
+}
+
+function completeWorkout(id){
+  const workout = allWorkouts.find(w=>w.id===id);
+  if (!workout) return;
+
+  let newXp = currentProfile.xp + workout.xp;
+  let newLevel = currentProfile.level;
+  let xpToNext = currentProfile.xpToNextLevel;
+  while (newXp >= xpToNext){
+    newXp -= xpToNext;
+    newLevel += 1;
+    xpToNext = newLevel * 100;
+  }
+  currentProfile.xp = newXp;
+  currentProfile.level = newLevel;
+  currentProfile.xpToNextLevel = xpToNext;
+  currentProfile.kcalBurned += workout.kcal;
+  currentProfile.totalWorkouts += 1;
+
+  saveProfile();
+  showToast("+" + workout.xp + " XP kazandın!");
+}
+
+/* ====================== AI KOÇ ====================== */
+function addChatMessage(text, who){
+  const scroll = document.getElementById('chatScroll');
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + who;
+  row.innerHTML = `<div class="bubble ${who}">${text}</div>`;
+  scroll.appendChild(row);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function aiCoachResponse(msg){
+  const m = msg.toLowerCase();
+  if (m.includes("motivasyon") || m.includes("isteksiz") || m.includes("yapamıyorum")){
+    return "Her büyük ilerleme küçük bir adımla başlar. Bugün sadece 5 dakika ayır, gerisi kendiliğinden gelecek. Sen zaten buraya kadar geldin, bu da bir başarı! 💪";
+  }
+  if (m.includes("kas") || m.includes("güç") || m.includes("bodybuilding")){
+    return "Kas gelişimi için haftada 3-4 gün direnç antrenmanı yap, her grup kası 48 saat dinlendir ve günlük protein alımını kilogram başına 1.6-2g'a çıkar. Antrenmanlar sekmesindeki 'Güç Antrenmanı' kategorisine göz at!";
+  }
+  if (m.includes("kilo") && (m.includes("ver") || m.includes("zayıf"))){
+    return "Kilo vermek için kalori açığı oluşturman gerekiyor: az ve sık öğün, bol su, haftada en az 3 kardiyo antrenmanı. Profil sayfandaki günlük kalori takibini düzenli kullanmanı öneririm.";
+  }
+  if (m.includes("su") || m.includes("hidrasyon")){
+    return "Günde en az 8 bardak su içmeyi hedefle. Ana sayfadaki su takibinden her içtiğinde bir bardak ekleyebilirsin!";
+  }
+  if (m.includes("merhaba") || m.includes("selam")){
+    return "Merhaba! Antrenman, beslenme veya motivasyon hakkında istediğini sorabilirsin.";
+  }
+  return "Bu konuda sana yardımcı olmak isterim. Antrenman planı, beslenme veya motivasyon ile ilgili daha net bir soru sorabilir misin?";
+}
+
+let coachInitialized = false;
+function initCoachIfNeeded(){
+  if (coachInitialized) return;
+  coachInitialized = true;
+  addChatMessage("Merhaba! Antrenman, beslenme veya motivasyon hakkında bana her şeyi sorabilirsin.", "ai");
+}
+
+document.getElementById('btnSend').onclick = sendChat;
+document.getElementById('chatInput').addEventListener('keydown', e=>{ if (e.key === 'Enter') sendChat(); });
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.onclick = ()=>{
+    document.getElementById('chatInput').value = chip.dataset.quick;
+    sendChat();
+  };
+});
+
+function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addChatMessage(text, 'user');
+  input.value = '';
+  setTimeout(()=> addChatMessage(aiCoachResponse(text), 'ai'), 300);
+}
+
+/* ====================== PROFİL ====================== */
+function refreshProfile(){
+  if (!currentProfile) return;
+  const name = currentProfile.name || "Kullanıcı";
+  document.getElementById('profileName').textContent = name;
+  document.getElementById('profileEmail').textContent = currentProfile.email || "";
+  document.getElementById('profileAvatar').textContent = name.substring(0,1).toUpperCase();
+  document.getElementById('profileLevelXp').textContent = "Seviye " + currentProfile.level + " · " + currentProfile.xp + " XP";
+  document.getElementById('profileStreak').textContent = currentProfile.streakDays;
+  document.getElementById('profileWorkouts').textContent = currentProfile.totalWorkouts;
+  document.getElementById('profileBadges').textContent = currentProfile.badges + "/7";
+  document.getElementById('profileAge').textContent = currentProfile.age > 0 ? currentProfile.age : "-";
+  document.getElementById('profileHeight').textContent = currentProfile.heightCm > 0 ? currentProfile.heightCm + " cm" : "-";
+  document.getElementById('profileWeight').textContent = currentProfile.weightKg > 0 ? currentProfile.weightKg + " kg" : "-";
+  document.getElementById('profileGoal').textContent = currentProfile.goal || "Formda Kal";
+}
+
+document.getElementById('btnEditProfile').onclick = ()=>{
+  document.getElementById('editAge').value = currentProfile.age || "";
+  document.getElementById('editHeight').value = currentProfile.heightCm || "";
+  document.getElementById('editWeight').value = currentProfile.weightKg || "";
+  document.getElementById('editGoal').value = currentProfile.goal || "";
+  document.getElementById('editModal').classList.add('active');
+};
+document.getElementById('editCancel').onclick = ()=> document.getElementById('editModal').classList.remove('active');
+document.getElementById('editSave').onclick = ()=>{
+  currentProfile.age = parseInt(document.getElementById('editAge').value) || 0;
+  currentProfile.heightCm = parseInt(document.getElementById('editHeight').value) || 0;
+  currentProfile.weightKg = parseInt(document.getElementById('editWeight').value) || 0;
+  currentProfile.goal = document.getElementById('editGoal').value.trim() || "Formda Kal";
+  saveProfile();
+  refreshProfile();
+  document.getElementById('editModal').classList.remove('active');
+  showToast("Bilgiler güncellendi");
+};
+</script>
+</body>
+</html>
